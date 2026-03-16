@@ -1,0 +1,130 @@
+entity-relationship-diagram
+
+title Valet Parking - Data Model & Entity Relationships
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+Customer {
+  mobile_number string PK "Primary contact"
+  full_name string "Minimum 2 chars"
+}
+
+Vehicle {
+  license_plate string PK "Validated & uppercase"
+  damage_report string? "Pre-existing damage"
+  key_scan_data string? "Scanned key data"
+}
+
+Reservation {
+  reservation_id UUID PK "Auto-generated"
+  check_in_time datetime "Auto set on creation"
+  check_out_time datetime? "Set when closed"
+  qr_code_data string "Base64 encoded"
+  status ReservationStatus "ACTIVE by default"
+  parking_duration timedelta? "Calculated on close"
+}
+
+ReservationStatus {
+  ACTIVE string "Vehicle parked"
+  COMPLETED string "Vehicle returned"
+  CANCELLED string "Reservation cancelled"
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+Reservation ||--|| Customer : "belongs to"
+Reservation ||--|| Vehicle : "for vehicle"
+Reservation ||--|| ReservationStatus : "has status"
+
+// ============================================
+// REPOSITORY STORAGE
+// ============================================
+
+InMemoryRepository {
+  _reservations dict<UUID, Reservation> "Main storage"
+  _lock threading.Lock "Thread safety"
+}
+
+InMemoryRepository ||--|{ Reservation : "stores"
+
+// ============================================
+// SUPPORTING ENTITIES
+// ============================================
+
+QRCodeData {
+  reservation_id UUID "Encoded in QR"
+  type string "valet_parking"
+  version string "1.0"
+}
+
+QRCodeData ||--|| Reservation : "references"
+
+ParkingFee {
+  duration timedelta "Parking time"
+  rate_per_hour float "Hourly rate"
+  total_fee float "Calculated fee"
+}
+
+ParkingFee ||--|| Reservation : "calculated from"
+
+// ============================================
+// VALIDATION RULES
+// ============================================
+
+ValidationRules {
+  phone_validation string "International or 10-digit US"
+  plate_validation string "2-10 alphanumeric chars"
+  name_validation string "Min 2 characters"
+}
+
+Customer ||--|| ValidationRules : "validated by"
+Vehicle ||--|| ValidationRules : "validated by"
+
+// ============================================
+// ENTITY LIFECYCLE
+// ============================================
+
+// Customer Entity Lifecycle:
+// 1. Created during reservation creation
+// 2. Phone number validated (international or 10-digit)
+// 3. Name stripped and validated (min 2 chars)
+// 4. Embedded in Reservation (not stored separately)
+
+// Vehicle Entity Lifecycle:
+// 1. Created during reservation creation
+// 2. License plate validated and uppercased
+// 3. Damage report optionally recorded
+// 4. Key scan data optionally stored
+// 5. Damage report can be updated later
+// 6. Embedded in Reservation (not stored separately)
+
+// Reservation Entity Lifecycle:
+// 1. Created: status=ACTIVE, check_in_time=now(), UUID auto-generated
+// 2. QR code generated and stored
+// 3. Saved to repository
+// 4. Can be queried for current duration
+// 5. Vehicle damage can be updated
+// 6. Closed: check_out_time set, duration calculated, status=COMPLETED
+// 7. Cannot be closed twice (ReservationAlreadyClosedError)
+
+// ============================================
+// INDEXES & QUERIES
+// ============================================
+
+// Primary Queries:
+// - find_by_id(UUID) -> O(1) dictionary lookup
+// - find_active_reservations() -> O(n) filter by status
+// - save(Reservation) -> O(1) dictionary insert
+// - update(Reservation) -> O(1) dictionary update
+// - delete(UUID) -> O(1) dictionary delete
+
+// Future Database Indexes:
+// - PRIMARY KEY: reservation_id (UUID)
+// - INDEX: status (for finding active reservations)
+// - INDEX: check_in_time (for time-based queries)
+// - INDEX: customer.mobile_number (for customer lookup)
+// - INDEX: vehicle.license_plate (for vehicle lookup)

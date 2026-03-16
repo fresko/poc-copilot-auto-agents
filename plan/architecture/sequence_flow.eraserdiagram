@@ -1,0 +1,137 @@
+sequence-diagram
+
+title Valet Parking - Reservation Lifecycle Flow
+
+// ============================================
+// ACTORS & PARTICIPANTS
+// ============================================
+Customer [icon: user, color: blue]
+Valet Staff [icon: user-check, color: green]
+ReservationService [icon: server, color: orange]
+Validators [icon: shield, color: purple]
+QRGenerator [icon: qrcode, color: cyan]
+TimeCalculator [icon: clock, color: yellow]
+Repository [icon: database, color: red]
+
+// ============================================
+// FLOW 1: CREATE RESERVATION
+// ============================================
+group Create New Reservation [color: blue] {
+  Customer > Valet Staff: Arrive with vehicle
+  Valet Staff > Valet Staff: Collect customer info\n(name, phone, plate)
+  Valet Staff > Valet Staff: Inspect vehicle\nfor damages
+  
+  Valet Staff > ReservationService: create_reservation(\n  phone, name, plate, damages)
+  
+  ReservationService > Validators: validate_phone_number(phone)
+  Validators > ReservationService: ✓ Valid
+  
+  ReservationService > Validators: validate_license_plate(plate)
+  Validators > ReservationService: ✓ Valid
+  
+  ReservationService > ReservationService: Create Customer model
+  ReservationService > ReservationService: Create Vehicle model
+  ReservationService > ReservationService: Generate UUID
+  
+  ReservationService > QRGenerator: generate_qr_data(uuid)
+  QRGenerator > ReservationService: QR code string
+  
+  ReservationService > ReservationService: Create Reservation\n(status=ACTIVE,\ncheck_in_time=now())
+  
+  ReservationService > Repository: save(reservation)
+  Repository > ReservationService: ✓ Saved
+  
+  ReservationService > Valet Staff: Return reservation\n+ QR code
+  Valet Staff > Customer: Hand ticket with QR code
+}
+
+// ============================================
+// FLOW 2: PARKING PERIOD
+// ============================================
+group Parking Period [color: green] {
+  note Customer parks vehicle\nTime elapses...
+  
+  Valet Staff > ReservationService: calculate_current_duration(uuid)
+  ReservationService > Repository: find_by_id(uuid)
+  Repository > ReservationService: reservation
+  
+  ReservationService > TimeCalculator: calculate_duration(\n  check_in, None)
+  TimeCalculator > ReservationService: timedelta
+  ReservationService > Valet Staff: Duration info
+}
+
+// ============================================
+// FLOW 3: CHECK DAMAGES (Optional)
+// ============================================
+group Update Vehicle Damage [color: yellow] {
+  Valet Staff > Valet Staff: Notice new damage
+  Valet Staff > ReservationService: update_vehicle_damage(\n  uuid, "new damage")
+  
+  ReservationService > Repository: find_by_id(uuid)
+  Repository > ReservationService: reservation
+  
+  ReservationService > ReservationService: Update vehicle.damage_report
+  ReservationService > Repository: update(reservation)
+  Repository > ReservationService: ✓ Updated
+  
+  ReservationService > Valet Staff: Updated reservation
+}
+
+// ============================================
+// FLOW 4: CLOSE RESERVATION
+// ============================================
+group Close Reservation & Checkout [color: red] {
+  Customer > Valet Staff: Request vehicle\n(show QR code)
+  Valet Staff > Valet Staff: Scan QR code
+  
+  Valet Staff > ReservationService: close_reservation(uuid)
+  
+  ReservationService > Repository: find_by_id(uuid)
+  Repository > ReservationService: reservation
+  
+  ReservationService > ReservationService: Check if already closed
+  note over ReservationService: Throw error if\nalready COMPLETED
+  
+  ReservationService > ReservationService: Set check_out_time=now()
+  
+  ReservationService > TimeCalculator: calculate_duration(\n  check_in, check_out)
+  TimeCalculator > ReservationService: final_duration
+  
+  ReservationService > ReservationService: Set parking_duration
+  ReservationService > ReservationService: Set status=COMPLETED
+  
+  ReservationService > Repository: update(reservation)
+  Repository > ReservationService: ✓ Updated
+  
+  ReservationService > Valet Staff: Closed reservation\n+ duration + fee
+  
+  Valet Staff > TimeCalculator: calculate_parking_fee(\n  duration, rate)
+  TimeCalculator > Valet Staff: Total fee
+  
+  Valet Staff > Customer: Present bill\n+ return vehicle
+  Customer > Valet Staff: Payment
+  Valet Staff > Customer: Receipt + Thank you!
+}
+
+// ============================================
+// ALTERNATIVE FLOW: ERROR HANDLING
+// ============================================
+group Error Scenarios [color: gray] {
+  note Scenario 1: Invalid phone
+  Valet Staff > ReservationService: create_reservation(\n  invalid_phone...)
+  ReservationService > Validators: validate_phone_number(\n  "123")
+  Validators > ReservationService: ✗ InvalidPhoneNumberError
+  ReservationService > Valet Staff: Error: Invalid phone format
+  
+  note Scenario 2: Reservation not found
+  Valet Staff > ReservationService: get_reservation(\n  unknown_uuid)
+  ReservationService > Repository: find_by_id(unknown_uuid)
+  Repository > ReservationService: None
+  ReservationService > Valet Staff: ✗ ReservationNotFoundError
+  
+  note Scenario 3: Already closed
+  Valet Staff > ReservationService: close_reservation(uuid)
+  ReservationService > Repository: find_by_id(uuid)
+  Repository > ReservationService: reservation\n(status=COMPLETED)
+  ReservationService > Valet Staff: ✗ ReservationAlreadyClosedError
+}

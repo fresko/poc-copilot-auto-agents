@@ -1,0 +1,318 @@
+cloud-architecture-diagram
+
+title Valet Parking - Component Dependencies & Class Structure
+
+// ============================================
+// PACKAGE STRUCTURE
+// ============================================
+
+valet_parking Package [color: blue] {
+  
+  // Models Package
+  models Package [icon: box, color: purple] {
+    reservation.py [icon: file] {
+      ReservationStatus(Enum)
+      Customer(BaseModel)
+      Vehicle(BaseModel)
+      Reservation(BaseModel)
+    }
+  }
+  
+  // Core Package
+  core Package [icon: box, color: orange] {
+    qr_generator.py [icon: file] {
+      QRCodeGenerator
+        - generate_qr_data()
+        - generate_qr_image()
+        - decode_qr_data()
+    }
+    
+    time_calculator.py [icon: file] {
+      TimeCalculator
+        - calculate_duration()
+        - calculate_parking_fee()
+    }
+    
+    reservation_service.py [icon: file] {
+      ReservationService
+        - create_reservation()
+        - get_reservation()
+        - close_reservation()
+        - calculate_current_duration()
+        - update_vehicle_damage()
+        - get_active_reservations()
+    }
+  }
+  
+  // Storage Package
+  storage Package [icon: box, color: cyan] {
+    repository.py [icon: file] {
+      ReservationRepository(Protocol)
+        - save()
+        - find_by_id()
+        - find_active_reservations()
+        - update()
+        - delete()
+    }
+    
+    in_memory_repository.py [icon: file] {
+      InMemoryReservationRepository
+        - _reservations: dict
+        - _lock: Lock
+        - implements Repository
+    }
+  }
+  
+  // Utils Package
+  utils Package [icon: box, color: green] {
+    validators.py [icon: file] {
+      validate_phone_number()
+      validate_license_plate()
+      sanitize_plate_number()
+    }
+    
+    formatters.py [icon: file] {
+      format_parking_duration()
+      format_timestamp()
+    }
+  }
+  
+  // Exceptions Module
+  exceptions.py [icon: file, color: red] {
+    ValetParkingError
+    InvalidReservationError
+    ReservationNotFoundError
+    ReservationAlreadyClosedError
+    InvalidVehiclePlateError
+    InvalidPhoneNumberError
+  }
+  
+  // Config Module
+  config.py [icon: file, color: yellow] {
+    ValetParkingConfig(BaseSettings)
+      - qr_code_version: int
+      - parking_rate_per_hour: float
+      - timezone: str
+  }
+}
+
+// ============================================
+// EXTERNAL DEPENDENCIES
+// ============================================
+
+External Libraries [color: gray] {
+  Pydantic [icon: shield] {
+    BaseModel
+    BaseSettings
+    Field
+    field_validator
+  }
+  
+  QRCode Library [icon: qrcode] {
+    qrcode.make()
+    qrcode.QRCode
+  }
+  
+  Python Standard [icon: python] {
+    datetime
+    timedelta
+    UUID
+    threading.Lock
+    typing.Protocol
+    enum.Enum
+  }
+}
+
+// ============================================
+// DEPENDENCY FLOWS
+// ============================================
+
+// Core Dependencies
+reservation_service.py > repository.py: Uses Protocol
+reservation_service.py > qr_generator.py: Generates QR
+reservation_service.py > time_calculator.py: Calculates time
+reservation_service.py > reservation.py: Uses Models
+reservation_service.py > validators.py: Validates input
+reservation_service.py > exceptions.py: Raises errors
+
+// Model Dependencies
+reservation.py > Pydantic: Extends BaseModel
+reservation.py > Python Standard: Uses datetime, UUID, Enum
+
+// Storage Dependencies
+in_memory_repository.py > repository.py: Implements Protocol
+in_memory_repository.py > reservation.py: Stores Reservation
+in_memory_repository.py > Python Standard: Uses threading.Lock
+
+// QR Generator Dependencies
+qr_generator.py > QRCode Library: Generates QR images
+qr_generator.py > Python Standard: Uses base64, json, UUID
+
+// Validator Dependencies
+validators.py > exceptions.py: Raises validation errors
+validators.py > Python Standard: Uses regex
+
+// Config Dependencies
+config.py > Pydantic: Extends BaseSettings
+
+// ============================================
+// DESIGN PATTERNS USED
+// ============================================
+
+Design Patterns [color: yellow] {
+  
+  Repository Pattern [icon: database] {
+    Purpose: Abstract data persistence
+    Implementation: ReservationRepository Protocol
+    Benefits: Easy to swap storage backends
+  }
+  
+  Dependency Injection [icon: arrow-right] {
+    Purpose: Loose coupling
+    Implementation: ReservationService constructor
+    Benefits: Testable, flexible
+  }
+  
+  Strategy Pattern [icon: settings] {
+    Purpose: Interchangeable algorithms
+    Implementation: TimeCalculator, QRGenerator
+    Benefits: Different fee calculations
+  }
+  
+  Factory Method [icon: box] {
+    Purpose: Object creation
+    Implementation: UUID generation, QR creation
+    Benefits: Consistent object creation
+  }
+  
+  Data Transfer Object [icon: file-text] {
+    Purpose: Data encapsulation
+    Implementation: Pydantic models
+    Benefits: Validation, serialization
+  }
+}
+
+// ============================================
+// SOLID PRINCIPLES APPLIED
+// ============================================
+
+SOLID Principles [color: green] {
+  
+  Single Responsibility [icon: check] {
+    Each class has one reason to change
+    - QRGenerator: Only QR operations
+    - TimeCalculator: Only time calculations
+    - ReservationService: Only reservation logic
+  }
+  
+  Open/Closed [icon: unlock] {
+    Open for extension, closed for modification
+    - Repository Protocol allows new implementations
+    - Can add new validators without changing core
+  }
+  
+  Liskov Substitution [icon: shuffle] {
+    Subtypes must be substitutable
+    - Any ReservationRepository implementation works
+    - InMemoryRepository is substitutable
+  }
+  
+  Interface Segregation [icon: layers] {
+    Clients shouldn't depend on unused interfaces
+    - Repository has minimal interface
+    - Each utility function is focused
+  }
+  
+  Dependency Inversion [icon: chevrons-down] {
+    Depend on abstractions, not concretions
+    - Service depends on Repository Protocol
+    - Not on InMemoryReservationRepository
+  }
+}
+
+// ============================================
+// TESTING ARCHITECTURE
+// ============================================
+
+Testing Layer [color: red] {
+  
+  Unit Tests [icon: check-circle] {
+    tests/unit/models/
+    tests/unit/core/
+    tests/unit/storage/
+    tests/unit/utils/
+  }
+  
+  Integration Tests [icon: git-merge] {
+    tests/integration/
+    - Complete lifecycle tests
+    - Multi-component interactions
+  }
+  
+  Test Fixtures [icon: package] {
+    tests/conftest.py
+    - Shared fixtures
+    - Sample data generators
+    - Service instances
+  }
+  
+  Coverage [icon: percent] {
+    Target: 80%+
+    Tool: pytest-cov
+    Report: HTML + Terminal
+  }
+}
+
+// ============================================
+// DEPLOYMENT ARCHITECTURE (Future)
+// ============================================
+
+Future Deployment [color: purple, style: dashed] {
+  
+  API Layer [icon: server] {
+    FastAPI / Flask
+    REST Endpoints
+    Authentication
+    Rate Limiting
+  }
+  
+  Database Layer [icon: database] {
+    PostgreSQL
+    MongoDB
+    Redis Cache
+  }
+  
+  Message Queue [icon: layers] {
+    RabbitMQ / Kafka
+    Async Notifications
+    Event Sourcing
+  }
+  
+  Monitoring [icon: activity] {
+    Prometheus
+    Grafana
+    ELK Stack
+    Sentry
+  }
+}
+
+// ============================================
+// NOTES
+// ============================================
+
+// Current Implementation:
+// - Pure Python library (no API layer)
+// - In-memory storage (no database)
+// - Synchronous operations
+// - Thread-safe with locks
+// - Full type hints (Python 3.14+)
+// - Pydantic for validation
+// - 60+ test cases
+
+// Easy to extend to:
+// - REST API with FastAPI
+// - Database persistence (PostgreSQL/MongoDB)
+// - Async operations with asyncio
+// - Microservices architecture
+// - Event-driven with message queues
+// - Real-time notifications

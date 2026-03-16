@@ -1,0 +1,459 @@
+{
+  "project_name": "Valet Parking Reservation System",
+  "overview": "Comprehensive valet parking reservation management system in Python that handles ticket creation, vehicle tracking, QR code generation, parking time calculation, and reservation closure",
+  "requirements": {
+    "functional": [
+      "Generate new parking reservations with customer and vehicle information",
+      "Capture mobile number, full name, and license plate scan (KeyScan)",
+      "Record license plate number and pre-existing damage documentation",
+      "Generate unique QR codes for each reservation",
+      "Calculate parking duration from check-in to current time or checkout",
+      "Support closing/completing reservations with final time calculation",
+      "Store reservation data for retrieval and audit purposes"
+    ],
+    "technical": [
+      "Full type hints using Python 3.14+ syntax",
+      "Use Pydantic models for data validation and serialization",
+      "Adhere to ruff formatting and Google-style docstrings",
+      "Minimum 80% test coverage on core business logic",
+      "Custom exceptions for business logic errors",
+      "Comprehensive logging for audit trails"
+    ]
+  },
+  "architecture": {
+    "data_models": {
+      "Customer": {
+        "fields": {
+          "mobile_number": "str (validated phone format)",
+          "full_name": "str (minimum 2 characters)"
+        }
+      },
+      "Vehicle": {
+        "fields": {
+          "license_plate": "str (validated plate format)",
+          "damage_report": "str | None",
+          "key_scan_data": "str | None"
+        }
+      },
+      "Reservation": {
+        "fields": {
+          "reservation_id": "UUID",
+          "customer": "Customer model",
+          "vehicle": "Vehicle model",
+          "check_in_time": "datetime",
+          "check_out_time": "datetime | None",
+          "qr_code_data": "str",
+          "status": "Literal['active', 'completed', 'cancelled']",
+          "parking_duration": "timedelta | None"
+        }
+      }
+    },
+    "core_components": [
+      {
+        "name": "Models Layer",
+        "path": "src/valet_parking/models/",
+        "description": "Customer, Vehicle, Reservation data models and enums"
+      },
+      {
+        "name": "Core Business Logic",
+        "path": "src/valet_parking/core/",
+        "description": "Reservation service, QR code generator, time calculator, damage documentation handler"
+      },
+      {
+        "name": "Utilities",
+        "path": "src/valet_parking/utils/",
+        "description": "Validation helpers, data formatters, QR code utilities"
+      },
+      {
+        "name": "Exceptions",
+        "path": "src/valet_parking/exceptions.py",
+        "description": "Custom business logic exceptions"
+      },
+      {
+        "name": "Storage",
+        "path": "src/valet_parking/storage/",
+        "description": "Repository pattern for data persistence"
+      }
+    ]
+  },
+  "implementation_steps": [
+    {
+      "step": 1,
+      "name": "Define Custom Exceptions",
+      "files": [
+        {
+          "path": "src/valet_parking/exceptions.py",
+          "classes": [
+            "ValetParkingError",
+            "InvalidReservationError",
+            "ReservationNotFoundError",
+            "ReservationAlreadyClosedError",
+            "InvalidVehiclePlateError",
+            "InvalidPhoneNumberError"
+          ]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Create Data Models",
+      "files": [
+        {
+          "path": "src/valet_parking/models/reservation.py",
+          "classes": [
+            {
+              "name": "ReservationStatus",
+              "type": "enum",
+              "values": ["ACTIVE", "COMPLETED", "CANCELLED"]
+            },
+            {
+              "name": "Customer",
+              "type": "pydantic_model",
+              "fields": ["mobile_number", "full_name"]
+            },
+            {
+              "name": "Vehicle",
+              "type": "pydantic_model",
+              "fields": ["license_plate", "damage_report", "key_scan_data"]
+            },
+            {
+              "name": "Reservation",
+              "type": "pydantic_model",
+              "fields": [
+                "reservation_id",
+                "customer",
+                "vehicle",
+                "check_in_time",
+                "check_out_time",
+                "qr_code_data",
+                "status",
+                "parking_duration"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/valet_parking/models/__init__.py",
+          "exports": ["Customer", "Vehicle", "Reservation", "ReservationStatus"]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Implement Validation Utilities",
+      "files": [
+        {
+          "path": "src/valet_parking/utils/validators.py",
+          "functions": [
+            "validate_phone_number(phone: str) -> bool",
+            "validate_license_plate(plate: str) -> bool",
+            "sanitize_plate_number(plate: str) -> str"
+          ]
+        },
+        {
+          "path": "src/valet_parking/utils/formatters.py",
+          "functions": [
+            "format_parking_duration(duration: timedelta) -> str",
+            "format_timestamp(dt: datetime) -> str"
+          ]
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Implement QR Code Generator",
+      "files": [
+        {
+          "path": "src/valet_parking/core/qr_generator.py",
+          "classes": [
+            {
+              "name": "QRCodeGenerator",
+              "methods": [
+                "generate_qr_data(reservation_id: UUID) -> str",
+                "generate_qr_image(data: str, output_path: Path) -> None",
+                "decode_qr_data(qr_data: str) -> UUID"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Implement Time Calculator",
+      "files": [
+        {
+          "path": "src/valet_parking/core/time_calculator.py",
+          "classes": [
+            {
+              "name": "TimeCalculator",
+              "methods": [
+                "calculate_duration(check_in: datetime, check_out: datetime | None = None) -> timedelta",
+                "calculate_parking_fee(duration: timedelta, rate_per_hour: float) -> float"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "name": "Implement Repository Pattern",
+      "files": [
+        {
+          "path": "src/valet_parking/storage/repository.py",
+          "classes": [
+            {
+              "name": "ReservationRepository",
+              "type": "protocol",
+              "methods": [
+                "save(reservation: Reservation) -> None",
+                "find_by_id(reservation_id: UUID) -> Reservation | None",
+                "find_active_reservations() -> list[Reservation]",
+                "update(reservation: Reservation) -> None",
+                "delete(reservation_id: UUID) -> None"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/valet_parking/storage/in_memory_repository.py",
+          "classes": [
+            {
+              "name": "InMemoryReservationRepository",
+              "type": "implementation",
+              "implements": "ReservationRepository"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Implement Core Reservation Service",
+      "files": [
+        {
+          "path": "src/valet_parking/core/reservation_service.py",
+          "classes": [
+            {
+              "name": "ReservationService",
+              "methods": [
+                "create_reservation(mobile_number: str, full_name: str, license_plate: str, key_scan_data: str | None = None, damage_report: str | None = None) -> Reservation",
+                "get_reservation(reservation_id: UUID) -> Reservation",
+                "get_active_reservations() -> list[Reservation]",
+                "calculate_current_duration(reservation_id: UUID) -> timedelta",
+                "close_reservation(reservation_id: UUID) -> Reservation",
+                "update_vehicle_damage(reservation_id: UUID, damage_report: str) -> Reservation"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Module Initialization",
+      "files": [
+        {
+          "path": "src/valet_parking/__init__.py",
+          "exports": [
+            "ReservationService",
+            "Reservation",
+            "Customer",
+            "Vehicle",
+            "ReservationStatus"
+          ]
+        },
+        {
+          "path": "src/valet_parking/core/__init__.py",
+          "type": "module_init"
+        },
+        {
+          "path": "src/valet_parking/models/__init__.py",
+          "type": "module_init"
+        },
+        {
+          "path": "src/valet_parking/utils/__init__.py",
+          "type": "module_init"
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Configuration Management",
+      "files": [
+        {
+          "path": "src/valet_parking/config.py",
+          "classes": [
+            {
+              "name": "ValetParkingConfig",
+              "type": "pydantic_settings",
+              "fields": [
+                "QR_CODE_VERSION",
+                "PARKING_RATE_PER_HOUR",
+                "TIMEZONE"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "testing": {
+    "structure": "tests/unit/ directory mirroring source structure",
+    "coverage_target": "80%+",
+    "test_files": [
+      {
+        "path": "tests/unit/models/test_reservation.py",
+        "test_cases": [
+          "test_customer_creation_valid_data_creates_customer",
+          "test_customer_creation_invalid_phone_raises_error",
+          "test_vehicle_creation_valid_data_creates_vehicle",
+          "test_vehicle_creation_invalid_plate_raises_error",
+          "test_reservation_creation_valid_data_creates_reservation",
+          "test_reservation_has_unique_id",
+          "test_reservation_status_defaults_to_active",
+          "test_reservation_parking_duration_calculated_correctly"
+        ]
+      },
+      {
+        "path": "tests/unit/utils/test_validators.py",
+        "test_cases": [
+          "test_validate_phone_number_valid_formats_returns_true",
+          "test_validate_phone_number_invalid_format_raises_error",
+          "test_validate_license_plate_valid_format_returns_true",
+          "test_validate_license_plate_invalid_format_raises_error",
+          "test_sanitize_plate_number_removes_special_chars",
+          "test_sanitize_plate_number_converts_to_uppercase"
+        ]
+      },
+      {
+        "path": "tests/unit/utils/test_formatters.py",
+        "test_cases": [
+          "test_format_parking_duration_hours_and_minutes",
+          "test_format_parking_duration_days_hours_minutes",
+          "test_format_timestamp_iso_format"
+        ]
+      },
+      {
+        "path": "tests/unit/core/test_qr_generator.py",
+        "test_cases": [
+          "test_generate_qr_data_creates_unique_string",
+          "test_generate_qr_data_contains_reservation_id",
+          "test_decode_qr_data_extracts_reservation_id",
+          "test_generate_qr_image_creates_file",
+          "test_decode_invalid_qr_data_raises_error"
+        ]
+      },
+      {
+        "path": "tests/unit/core/test_time_calculator.py",
+        "test_cases": [
+          "test_calculate_duration_with_checkout_returns_difference",
+          "test_calculate_duration_without_checkout_uses_current_time",
+          "test_calculate_duration_handles_same_time",
+          "test_calculate_parking_fee_correct_calculation",
+          "test_calculate_parking_fee_rounds_up_partial_hours"
+        ]
+      },
+      {
+        "path": "tests/unit/storage/test_in_memory_repository.py",
+        "test_cases": [
+          "test_save_reservation_stores_correctly",
+          "test_find_by_id_existing_reservation_returns_reservation",
+          "test_find_by_id_nonexistent_returns_none",
+          "test_update_reservation_modifies_existing",
+          "test_delete_reservation_removes_from_storage",
+          "test_find_active_reservations_returns_only_active",
+          "test_repository_thread_safe_concurrent_writes"
+        ]
+      },
+      {
+        "path": "tests/unit/core/test_reservation_service.py",
+        "test_cases": [
+          "test_create_reservation_valid_data_creates_and_saves",
+          "test_create_reservation_generates_qr_code",
+          "test_create_reservation_invalid_phone_raises_error",
+          "test_create_reservation_invalid_plate_raises_error",
+          "test_get_reservation_existing_returns_reservation",
+          "test_get_reservation_nonexistent_raises_error",
+          "test_close_reservation_sets_checkout_time",
+          "test_close_reservation_updates_status_to_completed",
+          "test_close_reservation_already_closed_raises_error",
+          "test_calculate_current_duration_returns_time_elapsed",
+          "test_update_vehicle_damage_modifies_damage_report",
+          "test_get_active_reservations_returns_active_only"
+        ]
+      },
+      {
+        "path": "tests/conftest.py",
+        "fixtures": [
+          "repository",
+          "qr_generator",
+          "time_calculator",
+          "reservation_service",
+          "sample_customer_data",
+          "sample_vehicle_data",
+          "sample_reservation"
+        ]
+      },
+      {
+        "path": "tests/integration/test_reservation_flow.py",
+        "test_cases": [
+          "test_complete_reservation_lifecycle"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "runtime": [
+      "pydantic>=2.0",
+      "qrcode[pil]>=7.4",
+      "python-dateutil>=2.8"
+    ],
+    "development": [
+      "pytest>=7.0",
+      "pytest-cov>=4.0",
+      "pytest-mock>=3.10",
+      "mypy>=1.0",
+      "ruff>=0.1"
+    ]
+  },
+  "implementation_phases": [
+    {
+      "phase": 1,
+      "name": "Foundation",
+      "duration": "Days 1-2",
+      "deliverables": ["Exceptions", "Data models", "Validators"]
+    },
+    {
+      "phase": 2,
+      "name": "Utilities",
+      "duration": "Days 3-4",
+      "deliverables": ["QR code generator", "Time calculator", "Formatters"]
+    },
+    {
+      "phase": 3,
+      "name": "Storage",
+      "duration": "Day 5",
+      "deliverables": ["Repository interface", "In-memory implementation"]
+    },
+    {
+      "phase": 4,
+      "name": "Core Service",
+      "duration": "Days 6-7",
+      "deliverables": ["Reservation service", "Component integration"]
+    },
+    {
+      "phase": 5,
+      "name": "Testing",
+      "duration": "Days 8-9",
+      "deliverables": ["Unit tests", "Integration tests", "80%+ coverage"]
+    },
+    {
+      "phase": 6,
+      "name": "Documentation",
+      "duration": "Day 10",
+      "deliverables": ["API documentation", "Usage examples", "README updates"]
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+cloud-architecture-diagram
+
+title Valet Parking Reservation System - Architecture
+
+// ============================================
+// PRESENTATION LAYER
+// ============================================
+Client Applications [icon: monitor, color: blue] {
+  Web App [icon: browser]
+  Mobile App [icon: mobile]
+  CLI Tool [icon: terminal]
+  Admin Dashboard [icon: settings]
+}
+
+// ============================================
+// API / SERVICE LAYER
+// ============================================
+Service Layer [color: green] {
+  ReservationService [icon: server] {
+    Create Reservation
+    Get Reservation
+    Close Reservation
+    Update Damage
+    Calculate Duration
+    Get Active List
+  }
+}
+
+// ============================================
+// CORE BUSINESS LOGIC
+// ============================================
+Core Components [color: orange] {
+  QR Generator [icon: qrcode] {
+    Generate QR Data
+    Generate QR Image
+    Decode QR Data
+  }
+
+  Time Calculator [icon: clock] {
+    Calculate Duration
+    Calculate Parking Fee
+    Rate Management
+  }
+
+  Validators [icon: shield] {
+    Phone Validation
+    Plate Validation
+    Data Sanitization
+  }
+
+  Formatters [icon: layout] {
+    Duration Formatting
+    Timestamp Formatting
+  }
+}
+
+// ============================================
+// DATA MODELS
+// ============================================
+Data Models [color: purple] {
+  Customer Model [icon: user] {
+    mobile_number: str
+    full_name: str
+  }
+
+  Vehicle Model [icon: car] {
+    license_plate: str
+    damage_report: str?
+    key_scan_data: str?
+  }
+
+  Reservation Model [icon: file-text] {
+    reservation_id: UUID
+    customer: Customer
+    vehicle: Vehicle
+    check_in_time: datetime
+    check_out_time: datetime?
+    qr_code_data: str
+    status: ReservationStatus
+    parking_duration: timedelta?
+  }
+
+  Status Enum [icon: tag] {
+    ACTIVE
+    COMPLETED
+    CANCELLED
+  }
+}
+
+// ============================================
+// STORAGE LAYER
+// ============================================
+Storage Layer [color: cyan] {
+  Repository Interface [icon: database] {
+    save()
+    find_by_id()
+    find_active()
+    update()
+    delete()
+  }
+
+  In-Memory Store [icon: memory] {
+    Thread-Safe Dict
+    Locking Mechanism
+    CRUD Operations
+  }
+
+  Future: Database [icon: postgresql, color: gray] {
+    PostgreSQL
+    MongoDB
+    MySQL
+  }
+}
+
+// ============================================
+// INFRASTRUCTURE & UTILITIES
+// ============================================
+Infrastructure [color: red] {
+  Configuration [icon: settings] {
+    Pydantic Settings
+    Environment Vars
+    Rate Configuration
+  }
+
+  Exception Handling [icon: alert-triangle] {
+    ValetParkingError
+    ReservationNotFoundError
+    ReservationAlreadyClosedError
+    InvalidVehiclePlateError
+    InvalidPhoneNumberError
+    InvalidReservationError
+  }
+
+  Logging [icon: file-text] {
+    Audit Trail
+    Error Tracking
+    Performance Metrics
+  }
+}
+
+// ============================================
+// EXTERNAL INTEGRATIONS (Future)
+// ============================================
+External Services [color: yellow, style: dashed] {
+  SMS Gateway [icon: message-square] {
+    Send Notifications
+    Confirmation Alerts
+  }
+
+  Payment Gateway [icon: credit-card] {
+    Process Payments
+    Generate Receipts
+  }
+
+  Email Service [icon: mail] {
+    Send Receipts
+    Reservation Confirmations
+  }
+
+  Cloud Storage [icon: cloud] {
+    Store QR Images
+    Backup Data
+  }
+}
+
+// ============================================
+// CONNECTIONS - Client to Service
+// ============================================
+Web App > ReservationService: HTTP/REST API
+Mobile App > ReservationService: HTTP/REST API
+CLI Tool > ReservationService: Direct Import
+Admin Dashboard > ReservationService: HTTP/REST API
+
+// ============================================
+// CONNECTIONS - Service to Core Components
+// ============================================
+ReservationService > QR Generator: Generate QR Code
+ReservationService > Time Calculator: Calculate Duration & Fees
+ReservationService > Validators: Validate Input Data
+ReservationService > Formatters: Format Output
+
+// ============================================
+// CONNECTIONS - Service to Models
+// ============================================
+ReservationService > Customer Model: Create/Validate
+ReservationService > Vehicle Model: Create/Validate
+ReservationService > Reservation Model: Create/Update
+ReservationService > Status Enum: Status Management
+
+// ============================================
+// CONNECTIONS - Service to Storage
+// ============================================
+ReservationService > Repository Interface: Data Operations
+Repository Interface > In-Memory Store: CRUD Implementation
+Repository Interface > Future: Database: Production Storage
+
+// ============================================
+// CONNECTIONS - Infrastructure
+// ============================================
+ReservationService > Configuration: Load Settings
+ReservationService > Exception Handling: Error Management
+ReservationService > Logging: Audit & Tracking
+
+// ============================================
+// CONNECTIONS - External Services (Future)
+// ============================================
+ReservationService > SMS Gateway: Send Notifications
+ReservationService > Payment Gateway: Process Payments
+ReservationService > Email Service: Send Confirmations
+QR Generator > Cloud Storage: Store QR Images
+
+// ============================================
+// DATA FLOW ANNOTATIONS
+// ============================================
+// 1. Client creates reservation request
+// 2. ReservationService validates data (phone, plate)
+// 3. QR Generator creates unique QR code
+// 4. Customer & Vehicle models instantiated
+// 5. Reservation model created with auto UUID
+// 6. Repository saves to storage
+// 7. Response returned to client with QR code
+
+// ============================================
+// TESTING LAYER (Not shown in diagram)
+// ============================================
+// - Unit Tests: 60+ test cases
+// - Integration Tests: End-to-end workflows
+// - Fixtures: Shared test data
+// - Coverage: 80%+ target
+// ============================================

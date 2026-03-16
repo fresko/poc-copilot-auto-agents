@@ -1,0 +1,194 @@
+Metadata-Version: 2.4
+Name: valet_parking
+Version: 0.1.0
+Summary: A comprehensive valet parking reservation management system
+Author-email: Auto Dev Inc <dev@autodev.com>
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.14
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pydantic-settings>=2.0
+Requires-Dist: qrcode[pil]>=7.4
+Requires-Dist: python-dateutil>=2.8
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+
+# Valet Parking Reservation System
+
+A comprehensive valet parking reservation management system in Python that handles ticket creation, vehicle tracking, QR code generation, parking time calculation, and reservation closure.
+
+## Features
+
+- **Ticket Creation**: Generate new parking reservations with customer and vehicle information
+- **Customer Data Management**: Capture mobile number, full name, and license plate information
+- **Vehicle Information**: Record license plate number and pre-existing damage documentation
+- **QR Code Generation**: Generate unique QR codes for each reservation for quick retrieval
+- **Time Tracking**: Calculate parking duration from check-in to current time or checkout
+- **Reservation Management**: Support closing/completing reservations with final time calculation
+- **Data Persistence**: In-memory storage with thread-safe operations (extendable to databases)
+
+## Installation
+
+### Setup Development Environment
+
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install package in editable mode with dev dependencies
+pip install -e ".[dev]"
+```
+
+## Usage
+
+```python
+from valet_parking import ReservationService
+from valet_parking.storage import InMemoryReservationRepository
+from valet_parking.core import QRCodeGenerator, TimeCalculator
+
+# Initialize service
+repository = InMemoryReservationRepository()
+qr_generator = QRCodeGenerator()
+time_calculator = TimeCalculator()
+service = ReservationService(repository, qr_generator, time_calculator)
+
+# Create new reservation
+reservation = service.create_reservation(
+    mobile_number="+1-555-0123",
+    full_name="John Doe",
+    license_plate="ABC123",
+    key_scan_data="KEY_SCAN_DATA_HERE",
+    damage_report="Small scratch on rear bumper"
+)
+
+print(f"Reservation ID: {reservation.reservation_id}")
+print(f"QR Code: {reservation.qr_code_data}")
+
+# Check parking duration
+duration = service.calculate_current_duration(reservation.reservation_id)
+print(f"Current duration: {duration}")
+
+# Close reservation
+closed = service.close_reservation(reservation.reservation_id)
+print(f"Final duration: {closed.parking_duration}")
+print(f"Status: {closed.status}")
+```
+
+## Development
+
+### Format Code
+
+```bash
+# Fix linting issues and format code
+ruff check --fix .
+ruff format .
+```
+
+### Type Checking
+
+```bash
+mypy src/
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run specific test categories
+pytest tests/unit/
+pytest tests/integration/
+```
+
+### Run All Checks
+
+```bash
+# Simulate CI checks
+ruff check . && mypy src/ && pytest
+```
+
+## Project Structure
+
+```
+├── src/
+│   └── valet_parking/
+│       ├── __init__.py          # Package initialization
+│       ├── exceptions.py         # Custom exceptions
+│       ├── config.py            # Configuration settings
+│       ├── core/                # Core business logic
+│       │   ├── qr_generator.py  # QR code generation
+│       │   ├── time_calculator.py # Time and fee calculations
+│       │   └── reservation_service.py # Main service
+│       ├── models/              # Data models
+│       │   └── reservation.py   # Customer, Vehicle, Reservation
+│       ├── storage/             # Data persistence
+│       │   ├── repository.py    # Repository interface
+│       │   └── in_memory_repository.py # In-memory implementation
+│       └── utils/               # Utility functions
+│           ├── validators.py    # Input validation
+│           └── formatters.py    # Output formatting
+├── tests/
+│   ├── conftest.py             # Shared test fixtures
+│   ├── unit/                   # Unit tests
+│   └── integration/            # Integration tests
+├── plan/                       # Planning documents
+│   └── out_doc/                # Generated plans and specs
+├── pyproject.toml              # Project metadata and dependencies
+└── README.md                   # This file
+```
+
+## Architecture
+
+The system follows clean architecture principles with clear separation of concerns:
+
+- **Models Layer**: Pydantic models for data validation and serialization
+- **Core Layer**: Business logic for reservations, QR codes, and time calculation
+- **Storage Layer**: Repository pattern for data persistence (currently in-memory, extendable to databases)
+- **Utils Layer**: Reusable validation and formatting utilities
+
+## Testing
+
+The project maintains high test coverage (80%+) with comprehensive unit and integration tests:
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test complete workflows end-to-end
+- **Test Fixtures**: Shared fixtures in `conftest.py` for consistency
+
+## Requirements
+
+- Python 3.14+
+- pydantic >= 2.0
+- qrcode[pil] >= 7.4
+- python-dateutil >= 2.8
+
+## Development Dependencies
+
+- pytest >= 7.0
+- pytest-cov >= 4.0
+- pytest-mock >= 3.10
+- mypy >= 1.0
+- ruff >= 0.1
+
+## License
+
+MIT License
+
+## Contributing
+
+1. Format code with `ruff format .`
+2. Fix linting issues with `ruff check --fix .`
+3. Run type checks with `mypy src/`
+4. Run tests with `pytest`
+5. Ensure coverage meets 80%+ target
