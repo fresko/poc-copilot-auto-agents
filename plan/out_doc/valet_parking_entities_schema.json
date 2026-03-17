@@ -1,0 +1,213 @@
+{
+  "project": "valet_parking",
+  "generated_from": "src/valet_parking/models/reservation.py",
+  "description": "Generated entity schema/spec derived from the current Pydantic reservation models.",
+  "entity_order": [
+    "ReservationStatus",
+    "Customer",
+    "Vehicle",
+    "Reservation"
+  ],
+  "entities": {
+    "ReservationStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "cancelled"
+      ],
+      "title": "ReservationStatus",
+      "description": "Allowed reservation lifecycle states."
+    },
+    "Customer": {
+      "description": "Customer information for a valet parking reservation.\n\nAttributes:\n    mobile_number: Customer's mobile phone number.\n    full_name: Customer's full name (minimum 2 characters).",
+      "properties": {
+        "mobile_number": {
+          "title": "Mobile Number",
+          "type": "string"
+        },
+        "full_name": {
+          "minLength": 2,
+          "title": "Full Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mobile_number",
+        "full_name"
+      ],
+      "title": "Customer",
+      "type": "object"
+    },
+    "Vehicle": {
+      "description": "Vehicle information for a valet parking reservation.\n\nAttributes:\n    license_plate: Vehicle's license plate number.\n    damage_report: Optional description of pre-existing damage.\n    key_scan_data: Optional scanned key or plate data.",
+      "properties": {
+        "license_plate": {
+          "title": "License Plate",
+          "type": "string"
+        },
+        "damage_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Damage Report"
+        },
+        "key_scan_data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key Scan Data"
+        }
+      },
+      "required": [
+        "license_plate"
+      ],
+      "title": "Vehicle",
+      "type": "object"
+    },
+    "Reservation": {
+      "$defs": {
+        "Customer": {
+          "description": "Customer information for a valet parking reservation.\n\nAttributes:\n    mobile_number: Customer's mobile phone number.\n    full_name: Customer's full name (minimum 2 characters).",
+          "properties": {
+            "mobile_number": {
+              "title": "Mobile Number",
+              "type": "string"
+            },
+            "full_name": {
+              "minLength": 2,
+              "title": "Full Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "mobile_number",
+            "full_name"
+          ],
+          "title": "Customer",
+          "type": "object"
+        },
+        "ReservationStatus": {
+          "description": "Status of a parking reservation.",
+          "enum": [
+            "active",
+            "completed",
+            "cancelled"
+          ],
+          "title": "ReservationStatus",
+          "type": "string"
+        },
+        "Vehicle": {
+          "description": "Vehicle information for a valet parking reservation.\n\nAttributes:\n    license_plate: Vehicle's license plate number.\n    damage_report: Optional description of pre-existing damage.\n    key_scan_data: Optional scanned key or plate data.",
+          "properties": {
+            "license_plate": {
+              "title": "License Plate",
+              "type": "string"
+            },
+            "damage_report": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Damage Report"
+            },
+            "key_scan_data": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Key Scan Data"
+            }
+          },
+          "required": [
+            "license_plate"
+          ],
+          "title": "Vehicle",
+          "type": "object"
+        }
+      },
+      "description": "A valet parking reservation.\n\nAttributes:\n    reservation_id: Unique identifier for the reservation.\n    customer: Customer information.\n    vehicle: Vehicle information.\n    check_in_time: Time when vehicle was checked in.\n    check_out_time: Time when vehicle was checked out (None if still parked).\n    qr_code_data: QR code data for quick retrieval.\n    status: Current status of the reservation.\n    parking_duration: Calculated parking duration (None until checkout).",
+      "properties": {
+        "reservation_id": {
+          "format": "uuid",
+          "title": "Reservation Id",
+          "type": "string"
+        },
+        "customer": {
+          "$ref": "#/$defs/Customer"
+        },
+        "vehicle": {
+          "$ref": "#/$defs/Vehicle"
+        },
+        "check_in_time": {
+          "format": "date-time",
+          "title": "Check In Time",
+          "type": "string"
+        },
+        "check_out_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Check Out Time"
+        },
+        "qr_code_data": {
+          "title": "Qr Code Data",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ReservationStatus",
+          "default": "active"
+        },
+        "parking_duration": {
+          "anyOf": [
+            {
+              "format": "duration",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking Duration"
+        }
+      },
+      "required": [
+        "customer",
+        "vehicle",
+        "qr_code_data"
+      ],
+      "title": "Reservation",
+      "type": "object"
+    }
+  }
+}
