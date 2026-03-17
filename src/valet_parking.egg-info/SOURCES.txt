@@ -13,9 +13,12 @@ src/valet_parking/core/qr_generator.py
 src/valet_parking/core/reservation_service.py
 src/valet_parking/core/time_calculator.py
 src/valet_parking/models/__init__.py
+src/valet_parking/models/parking.py
 src/valet_parking/models/reservation.py
 src/valet_parking/storage/__init__.py
+src/valet_parking/storage/in_memory_parking_repository.py
 src/valet_parking/storage/in_memory_repository.py
+src/valet_parking/storage/parking_repository.py
 src/valet_parking/storage/repository.py
 src/valet_parking/utils/__init__.py
 src/valet_parking/utils/formatters.py
