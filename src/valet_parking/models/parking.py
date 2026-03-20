@@ -20,6 +20,17 @@ class Parking(BaseModel):
     name: str
     address: str
     status: str = Field(default="open")
+    created_at: str = Field(default_factory=lambda: __import__("datetime").datetime.utcnow().isoformat())
+    
+    @field_validator("created_at")
+    @classmethod
+    def validate_created_at(cls, v: str) -> str:
+        """Validate that created_at is a valid ISO format datetime string."""
+        try:
+            __import__("datetime").datetime.fromisoformat(v)
+        except ValueError:
+            raise ValueError("created_at must be a valid ISO format datetime string")
+        return v
     capacity: int = Field(gt=0)
     floors: int = Field(gt=0)
 
