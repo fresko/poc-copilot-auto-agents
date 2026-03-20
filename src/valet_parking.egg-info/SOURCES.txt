@@ -1,5 +1,10 @@
 README.md
 pyproject.toml
+src/calculator/__init__.py
+src/calculator/exceptions.py
+src/calculator/core/__init__.py
+src/calculator/core/calculator.py
+src/calculator/core/math_operations.py
 src/valet_parking/__init__.py
 src/valet_parking/config.py
 src/valet_parking/exceptions.py
