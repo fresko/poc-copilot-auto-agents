@@ -19,6 +19,7 @@ class Parking(BaseModel):
     parking_id: UUID = Field(default_factory=uuid4)
     name: str
     address: str
+    status: str = Field(default="open")
     capacity: int = Field(gt=0)
     floors: int = Field(gt=0)
 
@@ -37,3 +38,12 @@ class Parking(BaseModel):
         if not v or not v.strip():
             raise ValueError("Parking address cannot be empty")
         return v.strip()
+    
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Validate that status is one of the allowed values."""
+        allowed_statuses = {"open", "closed", "maintenance"}
+        if v.lower() not in allowed_statuses:
+            raise ValueError(f"Status must be one of {allowed_statuses}")
+        return v.lower()
