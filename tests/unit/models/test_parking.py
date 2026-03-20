@@ -1,5 +1,7 @@
 """Tests for Parking model."""
 
+import datetime
+
 import pytest
 
 from valet_parking.models.parking import Parking
@@ -65,3 +67,53 @@ class TestParking:
         """Test that negative floors raises validation error."""
         with pytest.raises(ValueError):
             Parking(name="City Parking", address="123 Main St", capacity=100, floors=-1)
+
+    def test_parking_created_at_is_set_on_creation(self):
+        """Test that created_at is automatically populated on creation."""
+        parking = Parking(name="Test Parking", address="1 Test St", capacity=100, floors=2)
+
+        assert parking.created_at is not None
+        assert isinstance(parking.created_at, str)
+
+    def test_parking_created_at_is_valid_iso_format(self):
+        """Test that the auto-generated created_at is a valid ISO format datetime string."""
+        parking = Parking(name="Test Parking", address="1 Test St", capacity=100, floors=2)
+
+        # Should not raise
+        parsed = datetime.datetime.fromisoformat(parking.created_at)
+        assert isinstance(parsed, datetime.datetime)
+
+    def test_parking_created_at_custom_valid_timestamp_accepted(self):
+        """Test that a valid ISO format datetime string is accepted for created_at."""
+        timestamp = "2024-01-15T10:30:00"
+        parking = Parking(
+            name="Test Parking",
+            address="1 Test St",
+            capacity=100,
+            floors=2,
+            created_at=timestamp,
+        )
+
+        assert parking.created_at == timestamp
+
+    def test_parking_created_at_invalid_string_raises_error(self):
+        """Test that an invalid timestamp string is rejected with a validation error."""
+        with pytest.raises(ValueError, match="valid ISO format datetime string"):
+            Parking(
+                name="Test Parking",
+                address="1 Test St",
+                capacity=100,
+                floors=2,
+                created_at="not-a-date",
+            )
+
+    def test_parking_created_at_empty_string_raises_error(self):
+        """Test that an empty string for created_at is rejected."""
+        with pytest.raises(ValueError, match="valid ISO format datetime string"):
+            Parking(
+                name="Test Parking",
+                address="1 Test St",
+                capacity=100,
+                floors=2,
+                created_at="",
+            )
