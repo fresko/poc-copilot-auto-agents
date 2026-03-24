@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valet Parking — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <header class="navbar">
+    <div class="container">
+      <a href="/" class="navbar__brand">
+        <span class="navbar__brand-icon" aria-hidden="true">🅿</span>
+        Valet Parking
+      </a>
+      <nav aria-label="Main navigation">
+        <ul class="navbar__nav">
+          <li><a href="#" class="active">Dashboard</a></li>
+          <li><a href="#">Reservations</a></li>
+          <li><a href="#">Reports</a></li>
+        </ul>
+      </nav>
+      <div class="navbar__actions">
+        <button class="btn btn-outline-light btn-sm">Settings</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── Hero ── -->
+    <section class="page-header">
+      <div class="container">
+        <p class="page-header__eyebrow">Today · <span id="today-date"></span></p>
+        <h1 class="page-header__title">Parking Dashboard</h1>
+        <p class="page-header__sub">Monitor the lot, manage reservations, and check in new vehicles.</p>
+      </div>
+    </section>
+
+    <div class="container">
+
+      <!-- ── Stats ── -->
+      <div class="stats" role="region" aria-label="Summary statistics">
+        <div class="stat-card stat-card--orange">
+          <p class="stat-card__label"><span class="stat-icon">🚗</span> Active</p>
+          <p class="stat-card__value" id="stat-active">3</p>
+          <p class="stat-card__delta">vehicles currently parked</p>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <p class="stat-card__label"><span class="stat-icon">✔</span> Completed today</p>
+          <p class="stat-card__value" id="stat-completed">12</p>
+          <p class="stat-card__delta">check-outs since midnight</p>
+        </div>
+        <div class="stat-card stat-card--purple">
+          <p class="stat-card__label"><span class="stat-icon">⏱</span> Avg. duration</p>
+          <p class="stat-card__value" id="stat-avg">1h 24m</p>
+          <p class="stat-card__delta">average parking time</p>
+        </div>
+        <div class="stat-card stat-card--teal">
+          <p class="stat-card__label"><span class="stat-icon">🅿</span> Map slots</p>
+          <p class="stat-card__value">40</p>
+          <p class="stat-card__delta">mapped lot capacity</p>
+        </div>
+      </div>
+
+      <!-- ── Parking Map ── -->
+      <section class="card map-card" aria-labelledby="map-heading">
+        <div class="card__header">
+          <h2 class="card__title" id="map-heading">Parking Lot Map</h2>
+          <div class="map-legend" role="list" aria-label="Map legend">
+            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--available"></span>Available</span>
+            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--occupied"></span>Occupied</span>
+            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--reserved"></span>Reserved</span>
+            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--disabled"></span>Out of service</span>
+          </div>
+        </div>
+        <!-- Occupancy bar -->
+        <div class="occupancy-bar-wrapper" aria-label="Lot occupancy">
+          <div class="occupancy-bar" role="meter" aria-label="Occupied spots">
+            <div class="occupancy-bar__seg occupancy-bar__seg--occupied" id="occ-occupied" style="width:7.5%"></div>
+            <div class="occupancy-bar__seg occupancy-bar__seg--reserved" id="occ-reserved" style="width:5%"></div>
+            <div class="occupancy-bar__seg occupancy-bar__seg--disabled" id="occ-disabled" style="width:5%"></div>
+          </div>
+          <p class="occupancy-label" id="occ-label">3 / 36 occupied</p>
+        </div>
+        <!-- SVG map -->
+        <div class="map-svg-wrapper">
+          <svg
+            id="parking-map-svg"
+            viewBox="0 0 720 404"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label="Top-down view of the parking lot"
+          ></svg>
+        </div>
+      </section>
+
+      <!-- ── Main layout ── -->
+      <div class="layout">
+
+        <!-- ── Active reservations ── -->
+        <section class="card" aria-labelledby="reservations-heading">
+          <div class="card__header">
+            <h2 class="card__title" id="reservations-heading">Active Reservations</h2>
+            <button class="btn btn-ghost btn-sm" onclick="loadReservations()">↻ Refresh</button>
+          </div>
+          <div class="table-wrapper">
+            <table aria-live="polite">
+              <thead>
+                <tr>
+                  <th scope="col">Customer</th>
+                  <th scope="col">Plate</th>
+                  <th scope="col">Spot</th>
+                  <th scope="col">Check-in</th>
+                  <th scope="col">Duration</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="reservations-body">
+                <!-- rows injected by JS — colspan in empty-state row must match column count (7) -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Sidebar: New Reservation form ── -->
+        <aside>
+          <div class="card" aria-labelledby="form-heading">
+            <div class="card__header">
+              <h2 class="card__title" id="form-heading">New Reservation</h2>
+            </div>
+            <div class="card__body">
+              <form id="reservation-form" onsubmit="handleSubmit(event)">
+
+                <div class="form-group">
+                  <label class="form-label" for="full-name">Full name</label>
+                  <input
+                    class="form-input"
+                    type="text"
+                    id="full-name"
+                    name="full_name"
+                    placeholder="e.g. Jane Smith"
+                    required
+                    minlength="2"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="mobile">Mobile number</label>
+                  <input
+                    class="form-input"
+                    type="tel"
+                    id="mobile"
+                    name="mobile_number"
+                    placeholder="+1-555-0123"
+                    required
+                  />
+                  <p class="form-hint">Include country code (e.g. +1)</p>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="plate">License plate</label>
+                  <input
+                    class="form-input"
+                    type="text"
+                    id="plate"
+                    name="license_plate"
+                    placeholder="ABC-1234"
+                    required
+                    style="text-transform: uppercase;"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="damage">Pre-existing damage <span class="text-muted">(optional)</span></label>
+                  <textarea
+                    class="form-input"
+                    id="damage"
+                    name="damage_report"
+                    placeholder="Describe any pre-existing damage…"
+                    rows="3"
+                    style="resize:vertical;"
+                  ></textarea>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" style="flex:1">Check-in Vehicle</button>
+                  <button type="reset" class="btn btn-outline">Clear</button>
+                </div>
+                <p id="form-error" role="alert" style="display:none; margin-top:.75rem; font-size:.8125rem; color:var(--color-danger); font-weight:500;"></p>
+
+              </form>
+
+              <!-- Success / QR block -->
+              <div id="qr-result" class="qr-block" style="display:none; margin-top:1rem;" aria-live="polite">
+                <svg width="72" height="72" viewBox="0 0 80 80" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="80" height="80" rx="6" fill="#15803d"/>
+                  <rect x="8"  y="8"  width="24" height="24" rx="2" fill="white"/>
+                  <rect x="12" y="12" width="16" height="16" rx="1" fill="#15803d"/>
+                  <rect x="48" y="8"  width="24" height="24" rx="2" fill="white"/>
+                  <rect x="52" y="12" width="16" height="16" rx="1" fill="#15803d"/>
+                  <rect x="8"  y="48" width="24" height="24" rx="2" fill="white"/>
+                  <rect x="12" y="52" width="16" height="16" rx="1" fill="#15803d"/>
+                  <rect x="48" y="48" width="8"  height="8"  fill="white"/>
+                  <rect x="60" y="48" width="8"  height="8"  fill="white"/>
+                  <rect x="48" y="60" width="8"  height="8"  fill="white"/>
+                  <rect x="60" y="60" width="8"  height="8"  fill="white"/>
+                  <rect x="36" y="8"  width="8"  height="8"  fill="white"/>
+                  <rect x="36" y="20" width="8"  height="8"  fill="white"/>
+                  <rect x="8"  y="36" width="8"  height="8"  fill="white"/>
+                  <rect x="20" y="36" width="8"  height="8"  fill="white"/>
+                  <rect x="36" y="36" width="8"  height="8"  fill="white"/>
+                </svg>
+                <p>Reservation created ✓</p>
+                <p class="qr-block__id" id="qr-id"></p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div><!-- /.layout -->
+    </div><!-- /.container -->
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="container">
+      <span>© <span id="year"></span> Valet Parking System</span>
+      <span>v0.1.0 · Python 3.14</span>
+    </div>
+  </footer>
+
+  <script>
+    /* ═══════════════════════════════════════════════
+       PARKING MAP
+    ═══════════════════════════════════════════════ */
+
+    const MAP_W     = 720;
+    const SPOT_W    = 52;
+    const SPOT_H    = 66;
+    const SPOT_GAP  = 8;
+    const COLS      = 10;
+    const START_X   = Math.round((MAP_W - (COLS * SPOT_W + (COLS - 1) * SPOT_GAP)) / 2);
+    /* centres the spot grid horizontally within the SVG */
+
+    /* Row y-positions (4 rows, 2 aisles between pairs) */
+    const ROW_Y = { A: 40, B: 130, C: 240, D: 330 };
+    /* Layout:
+       Aisle-top  y=10..40
+       Row A      y=40..106
+       Aisle-1    y=106..130
+       Row B      y=130..196
+       Main aisle y=196..240
+       Row C      y=240..306
+       Aisle-2    y=306..330
+       Row D      y=330..396
+       Bottom pad            = 404
+    */
+
+    /* Named car colour palette */
+    const CAR_COLORS = {
+      RED:    '#dc2626',
+      BLUE:   '#2563eb',
+      AMBER:  '#d97706',
+      VIOLET: '#7c3aed',
+      CYAN:   '#0891b2',
+      PINK:   '#db2777',
+      GREEN:  '#059669',
+      ORANGE: '#ea580c',
+    };
+    const CAR_COLOR_LIST = Object.values(CAR_COLORS);
+
+    /* Build spots array */
+    const parkingSpots = [];
+    ['A','B','C','D'].forEach(row => {
+      for (let col = 0; col < COLS; col++) {
+        parkingSpots.push({
+          id: `${row}${col + 1}`,
+          row,
+          col,
+          status: 'available',  /* available | occupied | reserved | disabled */
+          reservationId: null,
+          carColor: null,
+        });
+      }
+    });
+
+    function setSpot(id, status, resId = null, color = null) {
+      const s = parkingSpots.find(s => s.id === id);
+      if (s) { s.status = status; s.reservationId = resId; s.carColor = color; }
+    }
+
+    /* Pre-set fixed spots */
+    setSpot('A1',  'disabled');
+    setSpot('D10', 'disabled');
+    setSpot('A10', 'reserved');
+    setSpot('D1',  'reserved');
+
+    setSpot('B3', 'occupied', 'a1b2c3d4-0000-0000-0000-000000000001', CAR_COLORS.RED);
+    setSpot('C7', 'occupied', 'a1b2c3d4-0000-0000-0000-000000000002', CAR_COLORS.BLUE);
+    setSpot('A5', 'occupied', 'a1b2c3d4-0000-0000-0000-000000000003', CAR_COLORS.ORANGE);
+
+    /* ── Render one spot ── */
+    function drawSpot(spot) {
+      const x = START_X + spot.col * (SPOT_W + SPOT_GAP);
+      const y = ROW_Y[spot.row];
+      let m = '';
+
+      /* Left divider line */
+      m += `<rect x="${x}" y="${y}" width="1" height="${SPOT_H}" fill="rgba(255,255,255,.18)"/>`;
+      /* Right divider on last column */
+      if (spot.col === COLS - 1) {
+        m += `<rect x="${x + SPOT_W}" y="${y}" width="1" height="${SPOT_H}" fill="rgba(255,255,255,.18)"/>`;
+      }
+      /* Back wall (top of spot) */
+      m += `<rect x="${x}" y="${y}" width="${SPOT_W}" height="2" fill="rgba(255,255,255,.12)"/>`;
+      /* Curb stop (bottom of spot) */
+      m += `<rect x="${x + 6}" y="${y + SPOT_H - 4}" width="${SPOT_W - 12}" height="3" rx="1.5" fill="rgba(255,255,255,.2)"/>`;
+
+      if (spot.status === 'available') {
+        m += `<rect x="${x+1}" y="${y+1}" width="${SPOT_W-2}" height="${SPOT_H-2}" rx="3" fill="#0a2218" stroke="#16a34a" stroke-width="1.5"/>`;
+        /* "P" letter */
+        m += `<text x="${x + SPOT_W/2}" y="${y + SPOT_H/2 + 8}" text-anchor="middle"
+               fill="#22c55e" font-size="24" font-weight="800" font-family="system-ui">P</text>`;
+
+      } else if (spot.status === 'occupied') {
+        /* Dark bay */
+        m += `<rect x="${x+1}" y="${y+1}" width="${SPOT_W-2}" height="${SPOT_H-2}" rx="3" fill="#1a0808"/>`;
+        /* Car body */
+        const cc = spot.carColor || '#dc2626';
+        m += `<rect x="${x+6}" y="${y+5}" width="${SPOT_W-12}" height="${SPOT_H-10}" rx="6" fill="${cc}"/>`;
+        /* Rear windshield (top) */
+        m += `<rect x="${x+10}" y="${y+9}" width="${SPOT_W-20}" height="11" rx="2" fill="rgba(200,235,255,.22)"/>`;
+        /* Front windshield (bottom) */
+        m += `<rect x="${x+9}" y="${y+SPOT_H-21}" width="${SPOT_W-18}" height="13" rx="2" fill="rgba(200,235,255,.28)"/>`;
+        /* Headlights */
+        m += `<rect x="${x+8}"  y="${y+SPOT_H-8}" width="9" height="3" rx="1.5" fill="rgba(255,248,160,.8)"/>`;
+        m += `<rect x="${x+SPOT_W-17}" y="${y+SPOT_H-8}" width="9" height="3" rx="1.5" fill="rgba(255,248,160,.8)"/>`;
+        /* Taillights */
+        m += `<rect x="${x+8}"  y="${y+5}" width="9" height="3" rx="1.5" fill="rgba(255,80,80,.85)"/>`;
+        m += `<rect x="${x+SPOT_W-17}" y="${y+5}" width="9" height="3" rx="1.5" fill="rgba(255,80,80,.85)"/>`;
+        /* Side mirrors */
+        m += `<rect x="${x+3}" y="${y+SPOT_H-34}" width="3" height="7" rx="1" fill="${cc}"/>`;
+        m += `<rect x="${x+SPOT_W-6}" y="${y+SPOT_H-34}" width="3" height="7" rx="1" fill="${cc}"/>`;
+
+      } else if (spot.status === 'reserved') {
+        m += `<rect x="${x+1}" y="${y+1}" width="${SPOT_W-2}" height="${SPOT_H-2}" rx="3"
+               fill="#070d2b" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+        m += `<text x="${x + SPOT_W/2}" y="${y + SPOT_H/2 + 9}" text-anchor="middle"
+               fill="#60a5fa" font-size="22" font-family="system-ui">♿</text>`;
+
+      } else { /* disabled */
+        m += `<rect x="${x+1}" y="${y+1}" width="${SPOT_W-2}" height="${SPOT_H-2}" rx="3" fill="#0d111a"/>`;
+        m += `<line x1="${x+9}" y1="${y+9}" x2="${x+SPOT_W-9}" y2="${y+SPOT_H-9}" stroke="#374151" stroke-width="2"/>`;
+        m += `<line x1="${x+SPOT_W-9}" y1="${y+9}" x2="${x+9}" y2="${y+SPOT_H-9}" stroke="#374151" stroke-width="2"/>`;
+      }
+
+      /* Spot ID label */
+      m += `<text x="${x + SPOT_W/2}" y="${y + 12}" text-anchor="middle"
+             fill="rgba(255,255,255,.3)" font-size="9" font-family="monospace">${spot.id}</text>`;
+      return m;
+    }
+
+    /* ── Draw an aisle lane ── */
+    function drawAisle(y, h, showArrows) {
+      let m = '';
+      m += `<rect x="0" y="${y}" width="${MAP_W}" height="${h}" fill="#0e1825"/>`;
+      /* Yellow center-line dashes */
+      const cy = y + h / 2;
+      for (let x = 40; x < MAP_W - 40; x += 28) {
+        m += `<rect x="${x}" y="${cy-1}" width="16" height="2" rx="1" fill="#facc15" opacity=".45"/>`;
+      }
+      if (showArrows) {
+        m += `<text x="14" y="${cy + 4}" fill="rgba(250,204,21,.55)" font-size="10" font-family="monospace">◄ EXIT</text>`;
+        m += `<text x="${MAP_W-64}" y="${cy + 4}" fill="rgba(250,204,21,.55)" font-size="10" font-family="monospace">ENTER ►</text>`;
+      }
+      return m;
+    }
+
+    /* ── Full map render ── */
+    function renderParkingMap() {
+      const svg = document.getElementById('parking-map-svg');
+      let m = '';
+
+      /* Background (asphalt) */
+      m += `<rect width="${MAP_W}" height="404" fill="#131d2e"/>`;
+
+      /* Aisles */
+      m += drawAisle(10,  30, true);   /* top entry */
+      m += drawAisle(106, 24, false);  /* between A & B */
+      m += drawAisle(196, 44, true);   /* main centre */
+      m += drawAisle(306, 24, false);  /* between C & D */
+
+      /* Row labels */
+      ['A','B','C','D'].forEach(row => {
+        const y = ROW_Y[row] + SPOT_H / 2 + 5;
+        m += `<text x="${START_X - 22}" y="${y}" text-anchor="middle"
+               fill="rgba(255,255,255,.22)" font-size="11" font-family="monospace" font-weight="bold">${row}</text>`;
+      });
+
+      /* Spots */
+      parkingSpots.forEach(spot => { m += drawSpot(spot); });
+
+      svg.innerHTML = m;
+      updateOccupancyBar();
+    }
+
+    /* ── Occupancy bar ── */
+    function updateOccupancyBar() {
+      const total = parkingSpots.length;
+      const dis = parkingSpots.filter(s => s.status === 'disabled').length;
+      const occ = parkingSpots.filter(s => s.status === 'occupied').length;
+      const res = parkingSpots.filter(s => s.status === 'reserved').length;
+      const active = total - dis;
+
+      document.getElementById('occ-occupied').style.width = `${(occ / total) * 100}%`;
+      document.getElementById('occ-reserved').style.width = `${(res / total) * 100}%`;
+      document.getElementById('occ-disabled').style.width = `${(dis / total) * 100}%`;
+      document.getElementById('occ-label').textContent = `${occ} of ${active} spots occupied`;
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESERVATIONS
+    ═══════════════════════════════════════════════ */
+
+    const DEMO_RESERVATIONS = [
+      {
+        id: 'a1b2c3d4-0000-0000-0000-000000000001',
+        customer: 'John Doe',
+        plate: 'ABC-1234',
+        spot: 'B3',
+        checkIn: new Date(Date.now() - 72 * 60000),
+        status: 'active',
+      },
+      {
+        id: 'a1b2c3d4-0000-0000-0000-000000000002',
+        customer: 'Maria García',
+        plate: 'XYZ-5678',
+        spot: 'C7',
+        checkIn: new Date(Date.now() - 34 * 60000),
+        status: 'active',
+      },
+      {
+        id: 'a1b2c3d4-0000-0000-0000-000000000003',
+        customer: 'Liam Nguyen',
+        plate: 'DEF-9012',
+        spot: 'A5',
+        checkIn: new Date(Date.now() - 18 * 60000),
+        status: 'active',
+      },
+    ];
+
+    let reservations = [...DEMO_RESERVATIONS];
+
+    function formatDuration(ms) {
+      const m = Math.floor(ms / 60000);
+      const h = Math.floor(m / 60);
+      return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function statusBadge(status) {
+      return `<span class="badge badge-${status}">${status}</span>`;
+    }
+
+    function loadReservations() {
+      const tbody = document.getElementById('reservations-body');
+      if (reservations.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="7">
+            <div class="empty-state">
+              <div class="empty-state__icon">🚗</div>
+              <p class="empty-state__title">No active reservations</p>
+              <p>Check-in a vehicle using the form.</p>
+            </div>
+          </td></tr>`;
+        return;
+      }
+      tbody.innerHTML = reservations.map(r => `
+        <tr>
+          <td>${r.customer}</td>
+          <td><span class="plate">${r.plate}</span></td>
+          <td><span class="spot-badge">${r.spot || '—'}</span></td>
+          <td>${formatTime(r.checkIn)}</td>
+          <td>${formatDuration(Date.now() - r.checkIn)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="checkout('${r.id}')">Check-out</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function checkout(id) {
+      reservations = reservations.filter(r => r.id !== id);
+      const spot = parkingSpots.find(s => s.reservationId === id);
+      if (spot) { spot.status = 'available'; spot.reservationId = null; spot.carColor = null; }
+      const completed = parseInt(document.getElementById('stat-completed').textContent, 10);
+      document.getElementById('stat-completed').textContent = completed + 1;
+      document.getElementById('stat-active').textContent = reservations.length;
+      loadReservations();
+      renderParkingMap();
+    }
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+
+      const availableSpot = parkingSpots.find(s => s.status === 'available');
+      if (!availableSpot) {
+        const errEl = document.getElementById('form-error');
+        errEl.textContent = '⚠ Parking lot is full — no available spots.';
+        errEl.style.display = 'block';
+        return;
+      }
+      document.getElementById('form-error').style.display = 'none';
+
+      const id = crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const carColor = CAR_COLOR_LIST[Math.floor(Math.random() * CAR_COLOR_LIST.length)];
+
+      reservations.push({
+        id,
+        customer: data.full_name,
+        plate: data.license_plate.toUpperCase(),
+        spot: availableSpot.id,
+        checkIn: new Date(),
+        status: 'active',
+      });
+
+      availableSpot.status = 'occupied';
+      availableSpot.reservationId = id;
+      availableSpot.carColor = carColor;
+
+      document.getElementById('stat-active').textContent = reservations.length;
+      loadReservations();
+      renderParkingMap();
+
+      const qrResult = document.getElementById('qr-result');
+      document.getElementById('qr-id').textContent = id;
+      qrResult.style.display = 'flex';
+
+      form.reset();
+    }
+
+    /* ── Init ── */
+    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString(
+      undefined, { weekday: 'long', month: 'long', day: 'numeric' }
+    );
+
+    loadReservations();
+    renderParkingMap();
+    setInterval(loadReservations, 30000);
+  </script>
+</body>
+</html>
