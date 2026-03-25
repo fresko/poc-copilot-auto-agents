@@ -64,164 +64,188 @@
         </div>
       </div>
 
-      <!-- ── Parking Map ── -->
-      <section class="card map-card" aria-labelledby="map-heading">
-        <div class="card__header">
-          <h2 class="card__title" id="map-heading">Parking Lot Map</h2>
-          <div class="map-legend" role="list" aria-label="Map legend">
-            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--available"></span>Available</span>
-            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--occupied"></span>Occupied</span>
-            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--reserved"></span>Reserved</span>
-            <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--disabled"></span>Out of service</span>
-          </div>
-        </div>
-        <!-- Occupancy bar -->
-        <div class="occupancy-bar-wrapper" aria-label="Lot occupancy">
-          <div class="occupancy-bar" role="meter" aria-label="Occupied spots">
-            <div class="occupancy-bar__seg occupancy-bar__seg--occupied" id="occ-occupied" style="width:7.5%"></div>
-            <div class="occupancy-bar__seg occupancy-bar__seg--reserved" id="occ-reserved" style="width:5%"></div>
-            <div class="occupancy-bar__seg occupancy-bar__seg--disabled" id="occ-disabled" style="width:5%"></div>
-          </div>
-          <p class="occupancy-label" id="occ-label">3 / 36 occupied</p>
-        </div>
-        <!-- SVG map -->
-        <div class="map-svg-wrapper">
-          <svg
-            id="parking-map-svg"
-            viewBox="0 0 720 404"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="xMidYMid meet"
-            role="img"
-            aria-label="Top-down view of the parking lot"
-          ></svg>
-        </div>
-      </section>
+      <!-- ── Tab Navigation ── -->
+      <div class="tabs" role="tablist" aria-label="Dashboard sections">
+        <button
+          class="tab tab--active"
+          id="tab-map"
+          role="tab"
+          aria-controls="panel-map"
+          aria-selected="true"
+          onclick="switchTab('map')"
+        >🗺 Parking Map</button>
+        <button
+          class="tab"
+          id="tab-reservations"
+          role="tab"
+          aria-controls="panel-reservations"
+          aria-selected="false"
+          onclick="switchTab('reservations')"
+        >📋 Reservations</button>
+      </div>
 
-      <!-- ── Main layout ── -->
-      <div class="layout">
-
-        <!-- ── Active reservations ── -->
-        <section class="card" aria-labelledby="reservations-heading">
+      <!-- ── Tab Panel: Parking Map ── -->
+      <div id="panel-map" role="tabpanel" aria-labelledby="tab-map">
+        <section class="card map-card" aria-labelledby="map-heading">
           <div class="card__header">
-            <h2 class="card__title" id="reservations-heading">Active Reservations</h2>
-            <button class="btn btn-ghost btn-sm" onclick="loadReservations()">↻ Refresh</button>
+            <h2 class="card__title" id="map-heading">Parking Lot Map</h2>
+            <div class="map-legend" role="list" aria-label="Map legend">
+              <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--available"></span>Available</span>
+              <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--occupied"></span>Occupied</span>
+              <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--reserved"></span>Reserved</span>
+              <span class="legend-item" role="listitem"><span class="legend-dot legend-dot--disabled"></span>Out of service</span>
+            </div>
           </div>
-          <div class="table-wrapper">
-            <table aria-live="polite">
-              <thead>
-                <tr>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Plate</th>
-                  <th scope="col">Spot</th>
-                  <th scope="col">Check-in</th>
-                  <th scope="col">Duration</th>
-                  <th scope="col">Status</th>
-                  <th scope="col"><span class="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody id="reservations-body">
-                <!-- rows injected by JS — colspan in empty-state row must match column count (7) -->
-              </tbody>
-            </table>
+          <!-- Occupancy bar -->
+          <div class="occupancy-bar-wrapper" aria-label="Lot occupancy">
+            <div class="occupancy-bar" role="meter" aria-label="Occupied spots">
+              <div class="occupancy-bar__seg occupancy-bar__seg--occupied" id="occ-occupied" style="width:7.5%"></div>
+              <div class="occupancy-bar__seg occupancy-bar__seg--reserved" id="occ-reserved" style="width:5%"></div>
+              <div class="occupancy-bar__seg occupancy-bar__seg--disabled" id="occ-disabled" style="width:5%"></div>
+            </div>
+            <p class="occupancy-label" id="occ-label">3 / 36 occupied</p>
+          </div>
+          <!-- SVG map -->
+          <div class="map-svg-wrapper">
+            <svg
+              id="parking-map-svg"
+              viewBox="0 0 720 404"
+              xmlns="http://www.w3.org/2000/svg"
+              preserveAspectRatio="xMidYMid meet"
+              role="img"
+              aria-label="Top-down view of the parking lot"
+            ></svg>
           </div>
         </section>
+      </div><!-- /#panel-map -->
 
-        <!-- ── Sidebar: New Reservation form ── -->
-        <aside>
-          <div class="card" aria-labelledby="form-heading">
+      <!-- ── Tab Panel: Reservations ── -->
+      <div id="panel-reservations" role="tabpanel" aria-labelledby="tab-reservations" style="display:none">
+        <div class="layout">
+
+          <!-- ── Active reservations table ── -->
+          <section class="card" aria-labelledby="reservations-heading">
             <div class="card__header">
-              <h2 class="card__title" id="form-heading">New Reservation</h2>
+              <h2 class="card__title" id="reservations-heading">Active Reservations</h2>
+              <button class="btn btn-ghost btn-sm" onclick="loadReservations()">↻ Refresh</button>
             </div>
-            <div class="card__body">
-              <form id="reservation-form" onsubmit="handleSubmit(event)">
+            <div class="table-wrapper">
+              <table aria-live="polite">
+                <thead>
+                  <tr>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Plate</th>
+                    <th scope="col">Spot</th>
+                    <th scope="col">Check-in</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="reservations-body">
+                  <!-- rows injected by JS — colspan in empty-state row must match column count (7) -->
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-                <div class="form-group">
-                  <label class="form-label" for="full-name">Full name</label>
-                  <input
-                    class="form-input"
-                    type="text"
-                    id="full-name"
-                    name="full_name"
-                    placeholder="e.g. Jane Smith"
-                    required
-                    minlength="2"
-                  />
+          <!-- ── Sidebar: New Reservation form ── -->
+          <aside>
+            <div class="card" aria-labelledby="form-heading">
+              <div class="card__header">
+                <h2 class="card__title" id="form-heading">New Reservation</h2>
+              </div>
+              <div class="card__body">
+                <form id="reservation-form" onsubmit="handleSubmit(event)">
+
+                  <div class="form-group">
+                    <label class="form-label" for="full-name">Full name</label>
+                    <input
+                      class="form-input"
+                      type="text"
+                      id="full-name"
+                      name="full_name"
+                      placeholder="e.g. Jane Smith"
+                      required
+                      minlength="2"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="mobile">Mobile number</label>
+                    <input
+                      class="form-input"
+                      type="tel"
+                      id="mobile"
+                      name="mobile_number"
+                      placeholder="+1-555-0123"
+                      required
+                    />
+                    <p class="form-hint">Include country code (e.g. +1)</p>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="plate">License plate</label>
+                    <input
+                      class="form-input"
+                      type="text"
+                      id="plate"
+                      name="license_plate"
+                      placeholder="ABC-1234"
+                      required
+                      style="text-transform: uppercase;"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="damage">Pre-existing damage <span class="text-muted">(optional)</span></label>
+                    <textarea
+                      class="form-input"
+                      id="damage"
+                      name="damage_report"
+                      placeholder="Describe any pre-existing damage…"
+                      rows="3"
+                      style="resize:vertical;"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex:1">Check-in Vehicle</button>
+                    <button type="reset" class="btn btn-outline">Clear</button>
+                  </div>
+                  <p id="form-error" role="alert" style="display:none; margin-top:.75rem; font-size:.8125rem; color:var(--color-danger); font-weight:500;"></p>
+
+                </form>
+
+                <!-- Success / QR block -->
+                <div id="qr-result" class="qr-block" style="display:none; margin-top:1rem;" aria-live="polite">
+                  <svg width="72" height="72" viewBox="0 0 80 80" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="80" height="80" rx="6" fill="#15803d"/>
+                    <rect x="8"  y="8"  width="24" height="24" rx="2" fill="white"/>
+                    <rect x="12" y="12" width="16" height="16" rx="1" fill="#15803d"/>
+                    <rect x="48" y="8"  width="24" height="24" rx="2" fill="white"/>
+                    <rect x="52" y="12" width="16" height="16" rx="1" fill="#15803d"/>
+                    <rect x="8"  y="48" width="24" height="24" rx="2" fill="white"/>
+                    <rect x="12" y="52" width="16" height="16" rx="1" fill="#15803d"/>
+                    <rect x="48" y="48" width="8"  height="8"  fill="white"/>
+                    <rect x="60" y="48" width="8"  height="8"  fill="white"/>
+                    <rect x="48" y="60" width="8"  height="8"  fill="white"/>
+                    <rect x="60" y="60" width="8"  height="8"  fill="white"/>
+                    <rect x="36" y="8"  width="8"  height="8"  fill="white"/>
+                    <rect x="36" y="20" width="8"  height="8"  fill="white"/>
+                    <rect x="8"  y="36" width="8"  height="8"  fill="white"/>
+                    <rect x="20" y="36" width="8"  height="8"  fill="white"/>
+                    <rect x="36" y="36" width="8"  height="8"  fill="white"/>
+                  </svg>
+                  <p>Reservation created ✓</p>
+                  <p class="qr-block__id" id="qr-id"></p>
                 </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="mobile">Mobile number</label>
-                  <input
-                    class="form-input"
-                    type="tel"
-                    id="mobile"
-                    name="mobile_number"
-                    placeholder="+1-555-0123"
-                    required
-                  />
-                  <p class="form-hint">Include country code (e.g. +1)</p>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="plate">License plate</label>
-                  <input
-                    class="form-input"
-                    type="text"
-                    id="plate"
-                    name="license_plate"
-                    placeholder="ABC-1234"
-                    required
-                    style="text-transform: uppercase;"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="damage">Pre-existing damage <span class="text-muted">(optional)</span></label>
-                  <textarea
-                    class="form-input"
-                    id="damage"
-                    name="damage_report"
-                    placeholder="Describe any pre-existing damage…"
-                    rows="3"
-                    style="resize:vertical;"
-                  ></textarea>
-                </div>
-
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" style="flex:1">Check-in Vehicle</button>
-                  <button type="reset" class="btn btn-outline">Clear</button>
-                </div>
-                <p id="form-error" role="alert" style="display:none; margin-top:.75rem; font-size:.8125rem; color:var(--color-danger); font-weight:500;"></p>
-
-              </form>
-
-              <!-- Success / QR block -->
-              <div id="qr-result" class="qr-block" style="display:none; margin-top:1rem;" aria-live="polite">
-                <svg width="72" height="72" viewBox="0 0 80 80" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="80" height="80" rx="6" fill="#15803d"/>
-                  <rect x="8"  y="8"  width="24" height="24" rx="2" fill="white"/>
-                  <rect x="12" y="12" width="16" height="16" rx="1" fill="#15803d"/>
-                  <rect x="48" y="8"  width="24" height="24" rx="2" fill="white"/>
-                  <rect x="52" y="12" width="16" height="16" rx="1" fill="#15803d"/>
-                  <rect x="8"  y="48" width="24" height="24" rx="2" fill="white"/>
-                  <rect x="12" y="52" width="16" height="16" rx="1" fill="#15803d"/>
-                  <rect x="48" y="48" width="8"  height="8"  fill="white"/>
-                  <rect x="60" y="48" width="8"  height="8"  fill="white"/>
-                  <rect x="48" y="60" width="8"  height="8"  fill="white"/>
-                  <rect x="60" y="60" width="8"  height="8"  fill="white"/>
-                  <rect x="36" y="8"  width="8"  height="8"  fill="white"/>
-                  <rect x="36" y="20" width="8"  height="8"  fill="white"/>
-                  <rect x="8"  y="36" width="8"  height="8"  fill="white"/>
-                  <rect x="20" y="36" width="8"  height="8"  fill="white"/>
-                  <rect x="36" y="36" width="8"  height="8"  fill="white"/>
-                </svg>
-                <p>Reservation created ✓</p>
-                <p class="qr-block__id" id="qr-id"></p>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
 
-      </div><!-- /.layout -->
+        </div><!-- /.layout -->
+      </div><!-- /#panel-reservations -->
     </div><!-- /.container -->
   </main>
 
@@ -548,6 +572,27 @@
       qrResult.style.display = 'flex';
 
       form.reset();
+    }
+
+    /* ═══════════════════════════════════════════════
+       TAB NAVIGATION
+    ═══════════════════════════════════════════════ */
+
+    function switchTab(name) {
+      const panels = { map: 'panel-map', reservations: 'panel-reservations' };
+      const tabs   = { map: 'tab-map',   reservations: 'tab-reservations'   };
+
+      Object.keys(panels).forEach(key => {
+        const panel = document.getElementById(panels[key]);
+        const tab   = document.getElementById(tabs[key]);
+        const active = key === name;
+        panel.style.display  = active ? '' : 'none';
+        tab.classList.toggle('tab--active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      /* Re-render map when its tab becomes visible */
+      if (name === 'map') renderParkingMap();
     }
 
     /* ── Init ── */
